@@ -18,8 +18,7 @@ public class RocketService {
     }
 
     public Rocket create(RocketRequest request) {
-        Rocket rocket = new Rocket(null, request.name().trim(), RocketRange.fromInput(request.range()), request.capacity());
-        return repository.save(rocket);
+        return repository.save(toRocket(request, null));
     }
 
     public Rocket getById(Long id) {
@@ -31,12 +30,8 @@ public class RocketService {
     }
 
     public Rocket update(Long id, RocketRequest request) {
-        if (repository.findById(id).isEmpty()) {
-            throw new RocketNotFoundException(id);
-        }
-
-        Rocket updated = new Rocket(id, request.name().trim(), RocketRange.fromInput(request.range()), request.capacity());
-        return repository.save(updated);
+        requireExistingRocket(id);
+        return repository.save(toRocket(request, id));
     }
 
     public void delete(Long id) {
@@ -44,5 +39,18 @@ public class RocketService {
         if (!deleted) {
             throw new RocketNotFoundException(id);
         }
+    }
+
+    private void requireExistingRocket(Long id) {
+        repository.findById(id).orElseThrow(() -> new RocketNotFoundException(id));
+    }
+
+    private Rocket toRocket(RocketRequest request, Long id) {
+        return new Rocket(
+                id,
+                request.name().trim(),
+                RocketRange.fromInput(request.range()),
+                request.capacity()
+        );
     }
 }

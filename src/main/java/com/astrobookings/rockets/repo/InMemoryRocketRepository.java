@@ -11,12 +11,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class InMemoryRocketRepository implements RocketRepository {
 
+    private static final long INITIAL_ID = 0L;
+
     private final ConcurrentHashMap<Long, Rocket> rockets = new ConcurrentHashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(0);
+    private final AtomicLong idGenerator = new AtomicLong(INITIAL_ID);
 
     @Override
     public Rocket save(Rocket rocket) {
-        Long id = rocket.id() == null ? idGenerator.incrementAndGet() : rocket.id();
+        Long id = rocket.id() == null ? nextId() : rocket.id();
         Rocket persisted = new Rocket(id, rocket.name(), rocket.range(), rocket.capacity());
         rockets.put(id, persisted);
         return persisted;
@@ -35,5 +37,9 @@ public class InMemoryRocketRepository implements RocketRepository {
     @Override
     public boolean deleteById(Long id) {
         return rockets.remove(id) != null;
+    }
+
+    private long nextId() {
+        return idGenerator.incrementAndGet();
     }
 }

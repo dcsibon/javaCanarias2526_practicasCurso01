@@ -18,13 +18,16 @@ import org.springframework.test.annotation.DirtiesContext;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class RocketApiE2ETest {
 
+    private static final String ROCKETS_ENDPOINT = "/rockets";
+    private static final long MISSING_ROCKET_ID = 999L;
+
     @Autowired
     private TestRestTemplate restTemplate;
 
     @Test
     void createWithValidPayloadStoresAndReturnsRocket() {
         ResponseEntity<RocketResponse> response = restTemplate.postForEntity(
-                "/rockets",
+                ROCKETS_ENDPOINT,
                 validRequest("Orion", "orbital", 4),
                 RocketResponse.class
         );
@@ -40,77 +43,65 @@ class RocketApiE2ETest {
     @Test
     void missingNameOnCreateOrUpdateReturnsValidationError() {
         ResponseEntity<ErrorResponse> createResponse = restTemplate.postForEntity(
-                "/rockets",
+                ROCKETS_ENDPOINT,
                 Map.of("range", "orbital", "capacity", 3),
                 ErrorResponse.class
         );
-        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(createResponse.getBody()).isNotNull();
-        assertThat(createResponse.getBody().errors()).contains("name is required");
+        assertBadRequestContains(createResponse, "name is required");
 
         Long id = createRocket("Nova", "moon", 5);
         ResponseEntity<ErrorResponse> updateResponse = restTemplate.exchange(
-                "/rockets/" + id,
+                rocketPath(id),
                 HttpMethod.PUT,
                 new HttpEntity<>(Map.of("range", "moon", "capacity", 5)),
                 ErrorResponse.class
         );
-        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(updateResponse.getBody()).isNotNull();
-        assertThat(updateResponse.getBody().errors()).contains("name is required");
+        assertBadRequestContains(updateResponse, "name is required");
     }
 
     @Test
     void invalidRangeOnCreateOrUpdateReturnsValidationError() {
         ResponseEntity<ErrorResponse> createResponse = restTemplate.postForEntity(
-                "/rockets",
+                ROCKETS_ENDPOINT,
                 validRequest("Astra", "interstellar", 3),
                 ErrorResponse.class
         );
-        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(createResponse.getBody()).isNotNull();
-        assertThat(createResponse.getBody().errors()).contains("range must be one of: suborbital, orbital, moon, mars");
+        assertBadRequestContains(createResponse, "range must be one of: suborbital, orbital, moon, mars");
 
         Long id = createRocket("Nova", "moon", 5);
         ResponseEntity<ErrorResponse> updateResponse = restTemplate.exchange(
-                "/rockets/" + id,
+                rocketPath(id),
                 HttpMethod.PUT,
                 new HttpEntity<>(validRequest("Nova", "interstellar", 5)),
                 ErrorResponse.class
         );
-        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(updateResponse.getBody()).isNotNull();
-        assertThat(updateResponse.getBody().errors()).contains("range must be one of: suborbital, orbital, moon, mars");
+        assertBadRequestContains(updateResponse, "range must be one of: suborbital, orbital, moon, mars");
     }
 
     @Test
     void invalidCapacityOnCreateOrUpdateReturnsValidationError() {
         ResponseEntity<ErrorResponse> createResponse = restTemplate.postForEntity(
-                "/rockets",
+                ROCKETS_ENDPOINT,
                 validRequest("Astra", "suborbital", 0),
                 ErrorResponse.class
         );
-        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(createResponse.getBody()).isNotNull();
-        assertThat(createResponse.getBody().errors()).contains("capacity must be between 1 and 10");
+        assertBadRequestContains(createResponse, "capacity must be between 1 and 10");
 
         Long id = createRocket("Nova", "moon", 5);
         ResponseEntity<ErrorResponse> updateResponse = restTemplate.exchange(
-                "/rockets/" + id,
+                rocketPath(id),
                 HttpMethod.PUT,
                 new HttpEntity<>(validRequest("Nova", "moon", 11)),
                 ErrorResponse.class
         );
-        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(updateResponse.getBody()).isNotNull();
-        assertThat(updateResponse.getBody().errors()).contains("capacity must be between 1 and 10");
+        assertBadRequestContains(updateResponse, "capacity must be between 1 and 10");
     }
 
     @Test
     void getByIdReturnsRocketDetailsWhenRocketExists() {
         Long id = createRocket("Voyager", "mars", 6);
 
-        ResponseEntity<RocketResponse> response = restTemplate.getForEntity("/rockets/" + id, RocketResponse.class);
+        ResponseEntity<RocketResponse> response = restTemplate.getForEntity(rocketPath(id), RocketResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
@@ -122,30 +113,24 @@ class RocketApiE2ETest {
 
     @Test
     void readUpdateAndDeleteReturnNotFoundWhenRocketDoesNotExist() {
-        ResponseEntity<ErrorResponse> readResponse = restTemplate.getForEntity("/rockets/999", ErrorResponse.class);
-        assertThat(readResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(readResponse.getBody()).isNotNull();
-        assertThat(readResponse.getBody().errors()).contains("rocket not found with id 999");
+        ResponseEntity<ErrorResponse> readResponse = restTemplate.getForEntity(rocketPath(MISSING_ROCKET_ID), ErrorResponse.class);
+        assertNotFoundContains(readResponse, "rocket not found with id 999");
 
         ResponseEntity<ErrorResponse> updateResponse = restTemplate.exchange(
-                "/rockets/999",
+                rocketPath(MISSING_ROCKET_ID),
                 HttpMethod.PUT,
                 new HttpEntity<>(validRequest("Phantom", "moon", 2)),
                 ErrorResponse.class
         );
-        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(updateResponse.getBody()).isNotNull();
-        assertThat(updateResponse.getBody().errors()).contains("rocket not found with id 999");
+        assertNotFoundContains(updateResponse, "rocket not found with id 999");
 
         ResponseEntity<ErrorResponse> deleteResponse = restTemplate.exchange(
-                "/rockets/999",
+                rocketPath(MISSING_ROCKET_ID),
                 HttpMethod.DELETE,
                 null,
                 ErrorResponse.class
         );
-        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(deleteResponse.getBody()).isNotNull();
-        assertThat(deleteResponse.getBody().errors()).contains("rocket not found with id 999");
+        assertNotFoundContains(deleteResponse, "rocket not found with id 999");
     }
 
     @Test
@@ -153,7 +138,7 @@ class RocketApiE2ETest {
         Long id = createRocket("Pioneer", "suborbital", 2);
 
         ResponseEntity<RocketResponse> response = restTemplate.exchange(
-                "/rockets/" + id,
+                rocketPath(id),
                 HttpMethod.PUT,
                 new HttpEntity<>(validRequest("Pioneer X", "orbital", 8)),
                 RocketResponse.class
@@ -172,7 +157,7 @@ class RocketApiE2ETest {
         Long firstId = createRocket("Atlas", "suborbital", 2);
         Long secondId = createRocket("Luna", "moon", 4);
 
-        ResponseEntity<RocketResponse[]> response = restTemplate.getForEntity("/rockets", RocketResponse[].class);
+        ResponseEntity<RocketResponse[]> response = restTemplate.getForEntity(ROCKETS_ENDPOINT, RocketResponse[].class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
@@ -183,16 +168,16 @@ class RocketApiE2ETest {
     void deleteRemovesExistingRocketAndReturnsNoContent() {
         Long id = createRocket("Tempest", "orbital", 3);
 
-        ResponseEntity<Void> deleteResponse = restTemplate.exchange("/rockets/" + id, HttpMethod.DELETE, null, Void.class);
+        ResponseEntity<Void> deleteResponse = restTemplate.exchange(rocketPath(id), HttpMethod.DELETE, null, Void.class);
         assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        ResponseEntity<ErrorResponse> getResponse = restTemplate.getForEntity("/rockets/" + id, ErrorResponse.class);
+        ResponseEntity<ErrorResponse> getResponse = restTemplate.getForEntity(rocketPath(id), ErrorResponse.class);
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     private Long createRocket(String name, String range, int capacity) {
         ResponseEntity<RocketResponse> response = restTemplate.postForEntity(
-                "/rockets",
+                ROCKETS_ENDPOINT,
                 validRequest(name, range, capacity),
                 RocketResponse.class
         );
@@ -208,6 +193,22 @@ class RocketApiE2ETest {
                 "range", range,
                 "capacity", capacity
         );
+    }
+
+    private String rocketPath(Long id) {
+        return ROCKETS_ENDPOINT + "/" + id;
+    }
+
+    private void assertBadRequestContains(ResponseEntity<ErrorResponse> response, String expectedError) {
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().errors()).contains(expectedError);
+    }
+
+    private void assertNotFoundContains(ResponseEntity<ErrorResponse> response, String expectedError) {
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().errors()).contains(expectedError);
     }
 
     private record RocketResponse(Long id, String name, String range, Integer capacity) {

@@ -1,5 +1,7 @@
 package com.astrobookings.rockets.domain;
 
+import java.util.Locale;
+
 public enum RocketRange {
     SUBORBITAL,
     ORBITAL,
@@ -7,6 +9,6 @@ public enum RocketRange {
     MARS;
 
     public static RocketRange fromInput(String value) {
-        return RocketRange.valueOf(value.trim().toUpperCase());
+        return RocketRange.valueOf(value.trim().toUpperCase(Locale.ROOT));
     }
 }

@@ -19,13 +19,17 @@ public class ApiExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .toList();
 
-        return ResponseEntity.badRequest().body(new ErrorResponse(errors));
+        return badRequest(errors);
     }
 
     @ExceptionHandler(RocketNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(RocketNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(List.of(exception.getMessage())));
+    }
+
+    private ResponseEntity<ErrorResponse> badRequest(List<String> errors) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(errors));
     }
 
     public record ErrorResponse(List<String> errors) {
