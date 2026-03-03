@@ -2,6 +2,8 @@
 
 Spring Boot service for managing rocket records used by AstroBookings.
 
+This is a simple example to test SKILLs.
+
 ## Requirements
 - Java 17
 - Maven 3.9+
