@@ -12,7 +12,7 @@
 
     <groupId>com.astrobookings</groupId>
     <artifactId>rockets-api</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <name>rockets-api</name>
     <description>Rocket management API</description>
 

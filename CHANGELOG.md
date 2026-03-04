@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] - 2026-03-04
+
+### Added
+- Logging configuration in `application.properties` with explicit levels and console pattern.
+- Request-level logs in the rocket controller for all CRUD endpoints.
+- Service-level logs for create/update/delete operations and not-found warnings.
+
 ## [0.1.0] - 2026-03-02
 
 ### Added

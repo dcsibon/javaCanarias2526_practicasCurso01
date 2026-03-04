@@ -40,3 +40,8 @@ Base path: `/rockets`
 - `name`: required, non-blank
 - `range`: one of `suborbital`, `orbital`, `moon`, `mars`
 - `capacity`: integer between 1 and 10
+
+## Logging
+- Console logging is configured in `src/main/resources/application.properties`.
+- Default level is `INFO` and package `com.astrobookings.rockets` is set to `DEBUG`.
+- Controller and service layers log CRUD operations and not-found events with key fields (`id`, `name`, `range`, `capacity`).
