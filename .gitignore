@@ -3,3 +3,6 @@
 
 # Build output
 target/
+
+# Local cache
+.cache/
